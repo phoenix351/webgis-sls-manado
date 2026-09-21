@@ -18,6 +18,7 @@
   let activePointsData = [];
   let pointsLayerGroup = null;
   let markerClusterGroup = null;
+  let pointCanvasRenderer = null;
 
   let activeCategories = new Set(['BKU', 'Campuran', 'BTT', 'Fasum', 'Kosong', 'Non Respon']);
   let filterOnlyBelum = false;
@@ -60,6 +61,12 @@
       zoom: 13,
       zoomControl: false,
       preferCanvas: true
+    });
+
+    // Renderer khusus titik dengan toleransi tap/sentuh 20px (sangat mudah disentuh di HP)
+    pointCanvasRenderer = L.canvas({
+      padding: 0.5,
+      tolerance: 20
     });
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -172,7 +179,15 @@
                 slsLayer.resetStyle(e.target);
               }
             },
-            click: function () {
+            click: function (e) {
+              // PENTING: Jika pengguna mengklik poligon SLS yang sedang aktif (misal meleset saat tap titik),
+              // JANGAN zoom out atau panggil ulang selectSlsById!
+              if (p.idsls === selectedSlsId) {
+                if (e && e.originalEvent) {
+                  L.DomEvent.stopPropagation(e);
+                }
+                return;
+              }
               selectSlsById(p.idsls, true);
             }
           });
@@ -381,33 +396,40 @@
     let marker;
 
     if (isNonRespon) {
-      // Red X custom div icon
+      // Red X custom div icon dengan area sentuh luas (36x36px) agar mudah di-tap di HP
       const icon = L.divIcon({
         className: 'custom-x-icon',
-        html: `<div style="color:#e61414; font-weight:900; font-size:16px; line-height:1; transform:translate(-50%,-50%); text-shadow:0 0 2px #fff, 0 0 2px #fff;">&times;</div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8]
+        html: `<div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#e61414; font-weight:900; font-size:22px; line-height:1; cursor:pointer; text-shadow:0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;">&times;</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
       });
-      marker = L.marker([pt.lt, pt.lg], { icon: icon });
+      marker = L.marker([pt.lt, pt.lg], {
+        icon: icon,
+        bubblingMouseEvents: false
+      });
     } else if (isBerhasil) {
-      // Solid circle with white stroke
+      // Solid circle dengan white stroke dan renderer toleransi tinggi
       marker = L.circleMarker([pt.lt, pt.lg], {
-        radius: 6,
+        renderer: pointCanvasRenderer,
+        radius: 8,
         fillColor: color,
         color: '#ffffff',
-        weight: 1.5,
+        weight: 2,
         opacity: 1,
-        fillOpacity: 0.95
+        fillOpacity: 0.95,
+        bubblingMouseEvents: false
       });
     } else {
-      // Hollow circle (Cincin / Ring) with thick border and semi-transparent white interior
+      // Hollow circle (Cincin / Ring) dengan border tebal dan renderer toleransi tinggi
       marker = L.circleMarker([pt.lt, pt.lg], {
-        radius: 6.5,
+        renderer: pointCanvasRenderer,
+        radius: 8.5,
         fillColor: '#ffffff',
         color: color,
-        weight: 3,
+        weight: 3.5,
         opacity: 1,
-        fillOpacity: 0.75
+        fillOpacity: 0.85,
+        bubblingMouseEvents: false
       });
     }
 
@@ -462,8 +484,13 @@
   function toggleGps() {
     const btn = document.getElementById('btn-gps');
     if (isGpsActive) {
-      stopGps();
-      btn.classList.remove('active', 'gps-pulse');
+      if (userLocationMarker) {
+        // Jika GPS sudah aktif, klik tombol GPS langsung memusatkan pandangan ke posisi pengguna
+        map.flyTo(userLocationMarker.getLatLng(), 18, { duration: 0.8 });
+      } else {
+        stopGps();
+        btn.classList.remove('active', 'gps-pulse');
+      }
     } else {
       startGps();
       btn.classList.add('active', 'gps-pulse');
@@ -491,33 +518,61 @@
     }
     if (userLocationMarker) map.removeLayer(userLocationMarker);
     if (userAccuracyCircle) map.removeLayer(userAccuracyCircle);
+    userLocationMarker = null;
+    userAccuracyCircle = null;
     document.getElementById('gps-banner').classList.remove('show');
   }
 
   function onGpsSuccess(pos) {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
-    const accuracy = pos.coords.accuracy;
+    const accuracy = Math.round(pos.coords.accuracy);
+
+    // Radar Beacon khusus agar posisi pengguna SANGAT MENCOLOK dan TIDAK TERSAMARKAN
+    const userBeaconHtml = `
+      <div class="user-location-beacon">
+        <div class="user-location-radar"></div>
+        <div class="user-location-radar"></div>
+        <div class="user-location-core" title="Lokasi Anda">
+          <div class="user-location-core-inner"></div>
+        </div>
+        <div class="user-location-tag">📍 Posisi Anda</div>
+      </div>
+    `;
+
+    const userIcon = L.divIcon({
+      className: 'user-location-marker-container',
+      html: userBeaconHtml,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
 
     if (!userLocationMarker) {
-      userLocationMarker = L.circleMarker([lat, lng], {
-        radius: 8,
-        color: '#ffffff',
-        weight: 2,
-        fillColor: '#0284c7',
-        fillOpacity: 1
+      userLocationMarker = L.marker([lat, lng], {
+        icon: userIcon,
+        zIndexOffset: 10000, // Selalu di atas semua titik tagging dan klaster
+        bubblingMouseEvents: false
       }).addTo(map);
 
       userAccuracyCircle = L.circle([lat, lng], {
         radius: accuracy,
-        color: '#0284c7',
-        weight: 1,
-        fillColor: '#0284c7',
-        fillOpacity: 0.15
+        color: '#ff3b30',
+        weight: 1.5,
+        fillColor: '#ff3b30',
+        fillOpacity: 0.1,
+        dashArray: '4, 4'
       }).addTo(map);
 
-      // First time center to user
-      map.setView([lat, lng], 17);
+      userLocationMarker.bindPopup(`
+        <div style="padding:10px 14px; font-size:12px; line-height:1.5;">
+          <b style="color:#ff3b30; font-size:13px;">📍 Lokasi GPS Anda</b><br>
+          Akurasi: <b>${accuracy} meter</b><br>
+          Koordinat: <span style="font-family:monospace; color:#334155;">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+        </div>
+      `, { offset: [0, -18] });
+
+      // Pertama kali dapat GPS: zoom mulus ke posisi pengguna
+      map.flyTo([lat, lng], 18, { duration: 1.2 });
     } else {
       userLocationMarker.setLatLng([lat, lng]);
       userAccuracyCircle.setLatLng([lat, lng]);

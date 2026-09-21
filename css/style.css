@@ -333,6 +333,104 @@ body, html {
   100% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0); }
 }
 
+/* USER LOCATION RADAR MARKER (SANGAT MENCOLOK & MUDAH DILIHAT) */
+.user-location-marker-container {
+  overflow: visible !important;
+}
+
+.user-location-beacon {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.user-location-radar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 59, 48, 0.3);
+  border: 2px solid #ff3b30;
+  animation: radar-expand 2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  pointer-events: none;
+}
+
+.user-location-radar:nth-child(2) {
+  animation-delay: 0.8s;
+}
+
+.user-location-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 35%, #ff453a, #d32f2f);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(211, 47, 47, 0.9), 0 3px 8px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.user-location-core-inner {
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 3px rgba(255,255,255,0.8);
+}
+
+.user-location-tag {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  border: 1.5px solid #ff3b30;
+  pointer-events: none;
+  z-index: 12;
+}
+
+.user-location-tag::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px 4px 0 4px;
+  border-style: solid;
+  border-color: #ff3b30 transparent transparent transparent;
+}
+
+@keyframes radar-expand {
+  0% {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+  }
+  100% {
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+  }
+}
+
+
 /* BASEMAP SWITCHER CARD */
 .basemap-panel {
   position: absolute;
