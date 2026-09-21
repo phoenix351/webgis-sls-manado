@@ -436,13 +436,19 @@
     // Popup Content
     const gmapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${pt.lt},${pt.lg}`;
     const statusColor = isBerhasil ? '#10b981' : '#f59e0b';
+    const popupTitle = pt.d ? pt.d : (pt.c || 'ID: ' + pt.i);
     
     const popupHtml = `
       <div class="popup-header" style="background:linear-gradient(135deg, ${color}, #0f172a);">
         <span class="popup-cat-badge">${pt.cat}</span>
-        <div class="popup-title">${pt.c || 'ID: ' + pt.i}</div>
+        <div class="popup-title">${popupTitle}</div>
       </div>
       <div class="popup-body">
+        ${pt.d && pt.c ? `
+        <div class="popup-row">
+          <span class="popup-key">Identitas/Kode</span>
+          <span class="popup-val" style="font-size:0.75rem;">${pt.c}</span>
+        </div>` : ''}
         <div class="popup-row">
           <span class="popup-key">Fullcode</span>
           <span class="popup-val" style="font-family:monospace;">${pt.f}</span>

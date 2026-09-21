@@ -92,7 +92,7 @@ def main():
     cursor = conn.cursor()
     cursor.execute("""
         SELECT fid, code_identity, fullcode, status_keberadaan, status_pendataan,
-               kode_bang_value, accuracy, latitude, longitude
+               kode_bang_value, accuracy, latitude, longitude, data1
         FROM geotag_keluarga_manado
     """)
     
@@ -102,7 +102,7 @@ def main():
     total_pts = 0
     
     for row in cursor:
-        fid, ci, fc, sk, sp, kb, acc, lat, lng = row
+        fid, ci, fc, sk, sp, kb, acc, lat, lng, data1 = row
         total_pts += 1
         
         sls_id = fc[:14] if fc and len(fc) >= 14 else 'UNKNOWN'
@@ -120,6 +120,7 @@ def main():
         pt_obj = {
             'i': fid,
             'c': ci or '',
+            'd': data1 or '',
             'f': fc or '',
             'k': kb or '',
             'sk': sk or '',
